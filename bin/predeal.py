@@ -27,46 +27,34 @@ def vectorize():
     terms = terms[:-512]
     vecs  = [ float(v) for v in vecs ]
     tosave.append( (terms, vecs) )
-
   open('../data/terms_vecs.pkl', 'wb').write( pickle.dumps(tosave) )
 
 def make_triple():
   model = KeyedVectors.load_word2vec_format('../data/model.vec', binary=False)
   terms_vecs = pickle.loads( open('../data/terms_vecs.pkl', 'rb').read() )   
-  term_index = {}
-  for (terms, vecs) in terms_vecs:
-    #print( terms )
-    for term in terms:
-      if term_index.get(term) is None:
-        term_index[term] = len(term_index)   
   
-  print( max( term_index.values() ) )
   triples = []
   for i in range(1, len(terms_vecs)-2, 1):
-      
     prevec  = terms_vecs[i-1][1]
     nextvec = terms_vecs[i+1][1]
-    nowvec  = []
-    for term in terms_vecs[i][0]:
+    nowvec  = [ [0.]*512 for _ in range(20)  ]
+    for ii, term in enumerate(terms_vecs[i][0][:20]):
       try:
-        nowvec.append( model[term] )  
+        nowvec[ii] = model[term]
       except KeyError as e:
-        print( e )
-    # print( nowvec )
+        print(e)
+        continue
+  
     triple  = (nowvec, prevec, nextvec)
     triples.append( triple )
     
-    if i%3000 == 0: 
-      window   = 20
-      nowvecs  = np.zeros((3000, window, 512), dtype=np.float32)
-      for ii, triple in enumerate(triples):
-        for e, v in enumerate(triple[0][:window]):
-          nowvecs[ii, e, :] = np.array( v )
-      print( nowvecs.shape )
-      prevvecs = np.array( [triple[1] for triple in triples], dtype=np.float32 )
-      nextvecs = np.array( [triple[2] for triple in triples], dtype=np.float32 )
-      print( prevvecs.shape )
-      print( nextvecs.shape )
+    if len(triples) == 3000: 
+      nowvecs  = np.array( [triple[0] for triple in triples], dtype=np.float32 ) * 100
+      prevvecs = np.array( [triple[1] for triple in triples], dtype=np.float32 ) * 100
+      nextvecs = np.array( [triple[2] for triple in triples], dtype=np.float32 ) * 100
+      print( "nowvec", nowvecs.shape )
+      print( "prevvec", prevvecs.shape )
+      print( "nextvec", nextvecs.shape )
 
       open('../data/triples_%09d.pkl'%i, 'wb').write( pickle.dumps( (nowvecs, prevvecs, nextvecs) ) ) 
       triples = []

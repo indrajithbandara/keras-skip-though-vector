@@ -1,5 +1,5 @@
 from keras.layers          import Lambda, Input, Dense, GRU, LSTM, RepeatVector
-from keras.models          import Model
+from keras.models          import Model, Sequential
 from keras.layers.core     import Flatten
 from keras.callbacks       import LambdaCallback 
 from keras.optimizers      import SGD, RMSprop, Adam
@@ -23,24 +23,34 @@ import re
 import time
 import concurrent.futures
 import threading 
-WIDTH       = 512
-ACTIVATOR   = 'selu'
-DO          = Dropout(0.1)
-inputs      = Input( shape=(20, WIDTH) ) 
-encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
-encoded     = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
-encoded     = Flatten()( encoded )
-encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='sigmoid')( encoded )
-encoder     = Model(inputs, encoded)
 
-decoded_1   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-decoded_1   = Dense(512, activation='linear')( decoded_1 )
-decoded_2   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-decoded_2   = Dense(512, activation='linear')( decoded_2 )
+def model1():
+  WIDTH       = 512
+  ACTIVATOR   = 'selu'
+  DO          = Dropout(0.1)
+  inputs      = Input( shape=(20, WIDTH) ) 
+  encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
+  encoded     = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+  encoded     = Flatten()( encoded )
+  encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='sigmoid')( encoded )
+  encoder     = Model(inputs, encoded)
 
-skipthought = Model( inputs, [decoded_1, decoded_2] )
-skipthought.compile( optimizer=Adam(), loss='mse' )
+  decoded_1   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+  decoded_1   = Dense(512, activation='linear')( decoded_1 )
+  decoded_2   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+  decoded_2   = Dense(512, activation='linear')( decoded_2 )
 
+  skipthought = Model( inputs, [decoded_1,decoded_2])
+  skipthought.compile( optimizer=SGD(), loss='mae' )
+  return skipthought
+def model2():
+  model      = Sequential()
+  model.add( Flatten(input_shape=(20,512) ) )
+  model.add( Dense(512) ) 
+  model.compile( optimizer=RMSprop(), loss='mae')
+  return model
+  
+skipthought = model1()
 buff = None
 now  = time.strftime("%H_%M_%S")
 def callback(epoch, logs):
@@ -54,7 +64,7 @@ batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,l
 DATASET_POOL = []
 def loader():
   while True:
-    for name in sorted( glob.glob('../data/triples_*.pkl') ):
+    for name in glob.glob('../data/triples_*.pkl'):
       while True:
         if len( DATASET_POOL ) >= 1: 
           time.sleep(1.0)
@@ -63,6 +73,8 @@ def loader():
         
       print('loading data...', name)
       x, y1, y2 = pickle.loads( open(name, 'rb').read() ) 
+      #print("x", x[0])
+      #print("y", y1[0])
       print( x.shape, y1.shape, y2.shape )
       DATASET_POOL.append( (x, y1, y2, name) )
       print('finish recover from sparse...', name)
@@ -86,7 +98,7 @@ def train():
       print('will deal this data', name)
       print('now count is', count)
       inner_loop = 0
-      skipthought.fit( x, [y1, y2], \
+      skipthought.fit( x, [y1,y2], \
                             epochs=1,\
                             validation_split=0.02, \
                             callbacks=[batch_callback] )
