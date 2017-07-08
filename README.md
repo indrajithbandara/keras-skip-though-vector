@@ -32,6 +32,36 @@
   
   分散表現で意味の類似度を効力した単語ベクトルになるので、skip-though vectorsの学習で用いなかった単語などにも対応が可能ということが論文で示唆されいます    
   
+### コード
+参考になるかどうかわかりませんが、お役に立てたら幸いです  
+fasttextの分散表現は256次元で、エンコード字の活性化関数は、論文に従いtanhを用いました  
 
+[github](https://github.com/GINK03/keras-skip-though-vector)
+```python3
+WIDTH       = 256
+ACTIVATOR   = 'selu'
+DO          = Dropout(0.1)
+inputs      = Input( shape=(20, WIDTH) ) 
+encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
+encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+encoded     = Flatten()( encoded )
+encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+encoded     = DO( encoded )
+encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='tanh')( encoded )
+encoder     = Model(inputs, encoded)
+
+decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+decoded_1   = TD( Dense(256) )( decoded_1 )
+decoded_1   = TD( Dense(256) )( decoded_1 )
+
+decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+decoded_2   = TD( Dense(256) )( decoded_1 )
+decoded_2   = TD( Dense(256) )( decoded_1 )
+
+skipthought = Model( inputs, [decoded_1, decoded_2] )
+skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
+```
  
 
