@@ -25,23 +25,28 @@ import concurrent.futures
 import threading 
 
 def model1():
-  WIDTH       = 512
+  WIDTH       = 256
   ACTIVATOR   = 'selu'
   DO          = Dropout(0.1)
   inputs      = Input( shape=(20, WIDTH) ) 
   encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
-  encoded     = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+  encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+  encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
   encoded     = Flatten()( encoded )
+  encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+  encoded     = DO( encoded )
+  encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
   encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='sigmoid')( encoded )
   encoder     = Model(inputs, encoded)
 
-  decoded_1   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-  decoded_1   = Dense(512, activation='linear')( decoded_1 )
-  decoded_2   = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-  decoded_2   = Dense(512, activation='linear')( decoded_2 )
+  decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+  decoded_1   = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( decoded_1 )
 
-  skipthought = Model( inputs, [decoded_1,decoded_2])
-  skipthought.compile( optimizer=SGD(), loss='mae' )
+  decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+  decoded_2   = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( decoded_1 )
+
+  skipthought = Model( inputs, [decoded_1, decoded_2] )
+  skipthought.compile( optimizer=Adam(), loss='mse' )
   return skipthought
 def model2():
   model      = Sequential()
@@ -60,35 +65,35 @@ def callback(epoch, logs):
     f.write('%s\n'%str(buff))
 batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,logs) )
 
-
 DATASET_POOL = []
 def loader():
   while True:
-    for name in glob.glob('../data/triples_*.pkl'):
+    for name in glob.glob('../bin/fastvec_data_*.pkl'):
       while True:
         if len( DATASET_POOL ) >= 1: 
           time.sleep(1.0)
         else:
           break
-        
       print('loading data...', name)
       x, y1, y2 = pickle.loads( open(name, 'rb').read() ) 
-      #print("x", x[0])
-      #print("y", y1[0])
       print( x.shape, y1.shape, y2.shape )
       DATASET_POOL.append( (x, y1, y2, name) )
       print('finish recover from sparse...', name)
 
 def train():
+  
+  try:
+    to_load = sorted( glob.glob('../models/*.h5') ).pop() 
+    skipthought.load_weights( to_load )
+    count = int( re.search(r'(\d{1,})', to_load).group(1) )
+  except IndexError as e:
+    print(e)
+  except Exception as e:
+    print(e)
+    sys.exit()
   t = threading.Thread(target=loader, args=())
   t.start()
   count = 0
-  try:
-    to_load = sorted( glob.glob('models/*.h5') ).pop() 
-    in2de.load_weights( to_load )
-    count = int( re.search(r'(\d{1,})', to_load).group(1) )
-  except Exception as e:
-    print( e )
   while True:
     if DATASET_POOL == []:
       print('no buffers so delay some seconds')
@@ -98,12 +103,13 @@ def train():
       print('will deal this data', name)
       print('now count is', count)
       inner_loop = 0
-      skipthought.fit( x, [y1,y2], \
+      skipthought.fit( x, [y1, y2], \
                             epochs=1,\
                             validation_split=0.02, \
                             callbacks=[batch_callback] )
       count += 1
-
+      if count%5 == 0:
+         skipthought.save_weights('../models/%09d.h5'%count)
 if __name__ == '__main__':
   if '--train' in sys.argv:
     train()
