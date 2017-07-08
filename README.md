@@ -37,7 +37,7 @@
 fasttextの分散表現は256次元で、エンコード字の活性化関数は、論文に従いtanhを用いました  
 
 [github](https://github.com/GINK03/keras-skip-though-vector)
-```python3
+```python
 WIDTH       = 256
 ACTIVATOR   = 'selu'
 DO          = Dropout(0.1)
