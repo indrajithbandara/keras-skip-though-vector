@@ -24,34 +24,31 @@ import time
 import concurrent.futures
 import threading 
 
-def model1():
-  WIDTH       = 256
-  ACTIVATOR   = 'selu'
-  DO          = Dropout(0.1)
-  inputs      = Input( shape=(20, WIDTH) ) 
-  encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
-  encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
-  encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
-  encoded     = Flatten()( encoded )
-  encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-  encoded     = DO( encoded )
-  encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-  encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='sigmoid')( encoded )
-  encoder     = Model(inputs, encoded)
+WIDTH       = 256
+ACTIVATOR   = 'selu'
+DO          = Dropout(0.1)
+inputs      = Input( shape=(20, WIDTH) ) 
+encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
+encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+encoded     = Flatten()( encoded )
+encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+encoded     = DO( encoded )
+encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
+encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='linear')( encoded )
+encoder     = Model(inputs, encoded)
 
-  decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-  decoded_1   = TD( Dense(256) )( decoded_1 )
-  decoded_1   = TD( Dense(256) )( decoded_1 )
+decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+decoded_1   = TD( Dense(256) )( decoded_1 )
+decoded_1   = TD( Dense(256) )( decoded_1 )
 
-  decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-  decoded_2   = TD( Dense(256) )( decoded_1 )
-  decoded_2   = TD( Dense(256) )( decoded_1 )
+decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
+decoded_2   = TD( Dense(256) )( decoded_1 )
+decoded_2   = TD( Dense(256) )( decoded_1 )
 
-  skipthought = Model( inputs, [decoded_1, decoded_2] )
-  skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
-  return skipthought
+skipthought = Model( inputs, [decoded_1, decoded_2] )
+skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
   
-skipthought = model1()
 buff = None
 now  = time.strftime("%H_%M_%S")
 def callback(epoch, logs):
@@ -83,8 +80,8 @@ class E:
   def G():
     E.cn += 1
     return E.l[E.cn%len(E.l)]
+
 def train():
-  
   try:
     to_load = sorted( glob.glob('../models/*.h5') ).pop() 
     skipthought.load_weights( to_load )
@@ -113,6 +110,29 @@ def train():
       count += 1
       if count%1 == 0:
          skipthought.save_weights('../models/%09d.h5'%count)
+
+def predict():
+  to_load = sorted( glob.glob('../models/*.h5') ).pop() 
+  skipthought.load_weights( to_load )
+  t = threading.Thread(target=loader, args=())
+  t.start()
+  while True:
+    if DATASET_POOL == []:
+      print('no buffers so delay some seconds')
+      time.sleep(1.)
+      continue
+
+    x, y1, y2, name = DATASET_POOL.pop(0)
+    
+    vecs = encoder.predict( x )
+    for v in vecs.tolist():
+      print( v )
+
+  
+  
 if __name__ == '__main__':
   if '--train' in sys.argv:
     train()
+
+  if '--predict' in sys.argv:
+    predict()
