@@ -40,20 +40,16 @@ def model1():
   encoder     = Model(inputs, encoded)
 
   decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-  decoded_1   = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( decoded_1 )
+  decoded_1   = TD( Dense(256) )( decoded_1 )
+  decoded_1   = TD( Dense(256) )( decoded_1 )
 
   decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-  decoded_2   = TD( Dense(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( decoded_1 )
+  decoded_2   = TD( Dense(256) )( decoded_1 )
+  decoded_2   = TD( Dense(256) )( decoded_1 )
 
   skipthought = Model( inputs, [decoded_1, decoded_2] )
-  skipthought.compile( optimizer=Adam(), loss='mse' )
+  skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
   return skipthought
-def model2():
-  model      = Sequential()
-  model.add( Flatten(input_shape=(20,512) ) )
-  model.add( Dense(512) ) 
-  model.compile( optimizer=RMSprop(), loss='mae')
-  return model
   
 skipthought = model1()
 buff = None
@@ -80,6 +76,13 @@ def loader():
       DATASET_POOL.append( (x, y1, y2, name) )
       print('finish recover from sparse...', name)
 
+class E:
+  l = [12, 10, 5, 3]
+  cn = 0
+  @staticmethod
+  def G():
+    E.cn += 1
+    return E.l[E.cn%len(E.l)]
 def train():
   
   try:
@@ -104,11 +107,11 @@ def train():
       print('now count is', count)
       inner_loop = 0
       skipthought.fit( x, [y1, y2], \
-                            epochs=1,\
+                            epochs=E.G(),\
                             validation_split=0.02, \
                             callbacks=[batch_callback] )
       count += 1
-      if count%5 == 0:
+      if count%1 == 0:
          skipthought.save_weights('../models/%09d.h5'%count)
 if __name__ == '__main__':
   if '--train' in sys.argv:
