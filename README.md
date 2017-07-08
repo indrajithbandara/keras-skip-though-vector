@@ -63,5 +63,11 @@ decoded_2   = TD( Dense(256) )( decoded_1 )
 skipthought = Model( inputs, [decoded_1, decoded_2] )
 skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
 ```
+
+### 実行
+
+
+## 参考文献
+[1] [Skip-Thought Vectors](http://llcao.net/cu-deeplearning17/pp/class12_SkipThought.pdf)
  
 
