@@ -13,3 +13,17 @@
  <div align="center"> 図1. 元論文の図解 </div>
  
  このベクトルが文章の前後を予想するベクトル、つまり、skip-thought vectorが出力されます。
+ 
+ ## Kerasでのモデルの構築
+  Kerasで元論文の意図を組んで実装しました。  
+  
+<p align="center">
+  <img width="700px" src="https://user-images.githubusercontent.com/4949982/27987905-dbc9f3a0-6450-11e7-8c17-2866ff8ade9e.png">
+</p>
+<div align="center"> 図2. 今回の実装の概要図 </div>
+  単語粒度での実装と、onehotベクトルでなくて、fasttextによる分散表現を用いています　
+  分散表現で意味の類似度を効力した単語ベクトルになるので、skip-though vectorsの学習で用いなかった単語などにも対応が可能ということが論文で示唆されいます  
+  
+
+ 
+
