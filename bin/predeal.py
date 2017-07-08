@@ -5,7 +5,7 @@ import re
 import MeCab
 import pickle
 from gensim.models import KeyedVectors
-
+import numpy as np
 def flatten():
   with open('../data/flatten.txt', 'w') as w:
     m = MeCab.Tagger('-Owakati')
@@ -57,7 +57,18 @@ def make_triple():
     triples.append( triple )
     
     if i%3000 == 0: 
-      open('../data/triples_%09d.pkl'%i, 'wb').write( pickle.dumps(triples) ) 
+      window   = 20
+      nowvecs  = np.zeros((3000, window, 512), dtype=np.float32)
+      for ii, triple in enumerate(triples):
+        for e, v in enumerate(triple[0][:window]):
+          nowvecs[ii, e, :] = np.array( v )
+      print( nowvecs.shape )
+      prevvecs = np.array( [triple[1] for triple in triples], dtype=np.float32 )
+      nextvecs = np.array( [triple[2] for triple in triples], dtype=np.float32 )
+      print( prevvecs.shape )
+      print( nextvecs.shape )
+
+      open('../data/triples_%09d.pkl'%i, 'wb').write( pickle.dumps( (nowvecs, prevvecs, nextvecs) ) ) 
       triples = []
 
 
