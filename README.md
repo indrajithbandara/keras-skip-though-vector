@@ -9,7 +9,7 @@
  この時、S2からS1,S3に情報を受け渡すときに、ベクトル情報が渡されます。  
  
  <p align="center">
-   <img width="700px" src="https://user-images.githubusercontent.com/4949982/27987657-0497d5cc-644c-11e7-9f90-c8923b9602e0.png">
+   <img width="700px" src="https://user-images.githubusercontent.com/4949982/27987989-75c479a2-6452-11e7-9f08-4c827f9909a3.png">
  </p>
  <div align="center"> 図1. 元論文の図解 </div>
  
