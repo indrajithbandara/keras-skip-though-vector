@@ -78,7 +78,7 @@ $ python3 skip-thought-vector.py --train
 ```
 encoderのベクトルを出力
 ```console
-$ python3 skip-thought-vector.py --train
+$ python3 skip-thought-vector.py --predict
 ```
 
 ## 参考文献
