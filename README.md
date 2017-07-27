@@ -64,8 +64,22 @@ skipthought = Model( inputs, [decoded_1, decoded_2] )
 skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
 ```
 
-### 実行
+### 実行
 
+新聞記事を元に学習させるプログラムのため、前処理が必要となります  
+```console
+$ python3 predeal.V2.py --step1
+$ python3 predeal.V2.py --step2
+$ python3 predeal.V2.py --step3
+```
+学習
+```console
+$ python3 skip-thought-vector.py --train
+```
+encoderのベクトルを出力
+```console
+$ python3 skip-thought-vector.py --predict
+```
 
 ## 参考文献
 [1] [Skip-Thought Vectors](http://llcao.net/cu-deeplearning17/pp/class12_SkipThought.pdf)
