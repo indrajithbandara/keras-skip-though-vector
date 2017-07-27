@@ -42,8 +42,8 @@ def make_triple():
     nex = tosave[i+1]
     buff.append( ( mid, pre, nex ) )
     if i != 0 and i%3000 == 0:
-      mids = np.array( [t[0] for t in buff] )
-      pres = np.array( [t[1] for t in buff] )
+      mids = np.array( [t[0] for t in buff] ) 
+      pres = np.array( [t[1] for t in buff] ) 
       nexs = np.array( [t[2] for t in buff] )
       open('fastvec_data_%09d.pkl'%i, 'wb').write( pickle.dumps( (mids,pres,nexs) ) )
       buff = []
