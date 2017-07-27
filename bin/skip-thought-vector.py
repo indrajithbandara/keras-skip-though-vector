@@ -25,25 +25,19 @@ import concurrent.futures
 import threading 
 
 WIDTH       = 256
-ACTIVATOR   = 'selu'
+ACTIVATOR   = 'tanh'
 DO          = Dropout(0.1)
 inputs      = Input( shape=(20, WIDTH) ) 
-encoded     = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
-encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
+encoded     = Bi( LSTM(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )(inputs)
 encoded     = TD( Dense(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR) )( encoded )
 encoded     = Flatten()( encoded )
-encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-encoded     = DO( encoded )
-encoded     = Dense(1024, kernel_initializer='lecun_uniform', activation=ACTIVATOR)( encoded )
-encoded     = Dense(256, kernel_initializer='lecun_uniform', activation='linear')( encoded )
+encoded     = Dense(512, kernel_initializer='lecun_uniform', activation='linear')( encoded )
 encoder     = Model(inputs, encoded)
 
-decoded_1   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-decoded_1   = TD( Dense(256) )( decoded_1 )
+decoded_1   = Bi( LSTM(512, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
 decoded_1   = TD( Dense(256) )( decoded_1 )
 
-decoded_2   = Bi( GRU(256, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
-decoded_2   = TD( Dense(256) )( decoded_1 )
+decoded_2   = Bi( LSTM(511, kernel_initializer='lecun_uniform', activation=ACTIVATOR, return_sequences=True) )( RepeatVector(20)( encoded ) )
 decoded_2   = TD( Dense(256) )( decoded_1 )
 
 skipthought = Model( inputs, [decoded_1, decoded_2] )
