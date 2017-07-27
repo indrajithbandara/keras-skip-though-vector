@@ -133,7 +133,18 @@ def enough_dataset():
       enoughs = []
 
 def make_batch():
-  ...
+  for e, name in enumerate( glob.glob('../data/enoughs_*.pkl') ):
+    print( name )
+    triples = pickle.loads( open(name, 'rb').read() )
+    hs = list( map(lambda x:x[0], triples) )
+    ms = list( map(lambda x:x[1], triples) )
+    ts = list( map(lambda x:x[2], triples) )
+    hs = np.array(hs)
+    ms = np.array(ms)
+    ts = np.array(ts)
+    #print(hs.shape, ms.shape, ts.shape)
+    open('../data/triple_%09d.pkl'%e, 'wb').write( pickle.dumps( (hs, ms, ts) ) )
+
 if __name__ == '__main__':
   if '--step1' in sys.argv:
     flatten()
@@ -149,3 +160,6 @@ if __name__ == '__main__':
 
   if '--step5' in sys.argv:
     enough_dataset()
+
+  if '--step6' in sys.argv:
+    make_batch()
