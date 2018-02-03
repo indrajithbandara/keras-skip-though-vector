@@ -25,21 +25,22 @@ import time
 import concurrent.futures
 import threading 
 
-WIDTH       = 256
-ACTIVATOR   = 'tanh'
 inputs      = Input( shape=(100,256) ) 
-encoded     = Bi( LSTM(256, return_sequences=False) )( inputs )
-encoded     = Dense(512, activation='linear')( encoded )
+encoded     = Bi( LSTM(256, return_sequences=True) )( inputs )
+encoded     = Bi( LSTM(256, return_sequences=False) )( encoded )
+encoded     = Dense(512, activation='tanh')( encoded )
 encoder     = Model(inputs, encoded)
 
-decoded_1   = Bi( LSTM(256, return_sequences=True) )( RepeatVector(100)( encoded ) )
-decoded_1   = TD( Dense(256) )( decoded_1 )
+decoded_1   = Bi( LSTM(256, dropout=0.1, recurrent_dropout=0.1, return_sequences=True) )( RepeatVector(100)( encoded ) )
+decoded_1   = TD( Dense(256, activation='relu') )( decoded_1 )
+decoded_1   = TD( Dense(256, activation='linear') )( decoded_1 )
 
-decoded_2   = Bi( LSTM(256, return_sequences=True) )( RepeatVector(100)( encoded ) )
-decoded_2   = TD( Dense(256) )( decoded_1 )
+decoded_2   = Bi( LSTM(256, dropout=0.1, recurrent_dropout=0.1, return_sequences=True) )( RepeatVector(100)( encoded ) )
+decoded_2   = TD( Dense(256, activation='relu') )( decoded_1 )
+decoded_2   = TD( Dense(256, activation='linear') )( decoded_1 )
 
 skipthought = Model( inputs, [decoded_1, decoded_2] )
-skipthought.compile( optimizer=Adam(), loss='mean_squared_logarithmic_error' )
+skipthought.compile( optimizer=RMSprop(), loss='mae' )
   
 buff = None
 now  = time.strftime("%H_%M_%S")
@@ -53,7 +54,7 @@ batch_callback = LambdaCallback(on_epoch_end=lambda batch,logs: callback(batch,l
 def train():
   triples = pickle.load( open('triples.pkl','rb') )
   Xs, ys1, ys2 = [], [], []
-  for x, y1, y2 in triples[:1000]:
+  for x, y1, y2 in triples[:30000]:
     Xs.append(x)
     ys1.append(y1)
     ys2.append(y2)
@@ -61,7 +62,8 @@ def train():
   
   for count in range(100):
     skipthought.fit( Xs, [ys1, ys2], \
-                          epochs=10,\
+                          epochs=5,\
+                          batch_size=128,
                           validation_split=0.02, \
                           callbacks=[batch_callback] )
     skipthought.save_weights('models/%09d.h5'%count)
