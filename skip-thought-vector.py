@@ -26,18 +26,19 @@ import concurrent.futures
 import threading 
 
 inputs      = Input( shape=(100,256) ) 
-encoded     = Bi( LSTM(200, return_sequences=False) )( inputs )
+encoded     = Bi( LSTM(300, return_sequences=False) )( inputs )
 #encoded     = BN()(encoded)
-encoded     = Dense(1012, activation='relu')( encoded )
-encoded     = Dense(512, activation='relu')( encoded )
+encoded     = Dense(2012, activation='relu')( encoded )
+encoded     = Dense(2012, activation='relu')( encoded )
+encoded     = Dense(512, activation='tanh')( encoded )
 encoder     = Model(inputs, encoded)
 
-decoded_1   = Bi( LSTM(200, dropout=0.0, recurrent_dropout=0.0, return_sequences=True) )( RepeatVector(100)( encoded ) )
-decoded_1   = TD( Dense(1024, activation='relu') )( decoded_1 )
+decoded_1   = Bi( LSTM(300, dropout=0.0, recurrent_dropout=0.0, return_sequences=True) )( RepeatVector(100)( encoded ) )
+decoded_1   = TD( Dense(2024, activation='relu') )( decoded_1 )
 decoded_1   = TD( Dense(256, activation='linear') )( decoded_1 )
 
-decoded_2   = Bi( LSTM(200, dropout=0.0, recurrent_dropout=0.0, return_sequences=True) )( RepeatVector(100)( encoded ) )
-decoded_2   = TD( Dense(1024, activation='relu') )( decoded_1 )
+decoded_2   = Bi( LSTM(300, dropout=0.0, recurrent_dropout=0.0, return_sequences=True) )( RepeatVector(100)( encoded ) )
+decoded_2   = TD( Dense(2024, activation='relu') )( decoded_1 )
 decoded_2   = TD( Dense(256, activation='linear') )( decoded_1 )
 
 skipthought = Model( inputs, [decoded_1, decoded_2] )
